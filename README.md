@@ -101,3 +101,57 @@ indent_size = 2
 indent_style = space
 indent_size = 2
 ```
+
+## 前端样式美化
+
+```shell script
+composer require laravel/ui:^1.0 --dev
+```
+
+package.json
+
+```shell script
+{
+    "private": true,
+    "scripts": {
+        "dev": "npm run development",
+        "development": "cross-env NODE_ENV=development node_modules/webpack/bin/webpack.js --progress --hide-modules --config=node_modules/laravel-mix/setup/webpack.config.js",
+        "watch": "npm run development -- --watch",
+        "watch-poll": "npm run watch -- --watch-poll",
+        "hot": "cross-env NODE_ENV=development node_modules/webpack-dev-server/bin/webpack-dev-server.js --inline --hot --config=node_modules/laravel-mix/setup/webpack.config.js",
+        "prod": "npm run production",
+        "production": "cross-env NODE_ENV=production node_modules/webpack/bin/webpack.js --no-progress --hide-modules --config=node_modules/laravel-mix/setup/webpack.config.js"
+    },
+    "devDependencies": {
+        "axios": "^0.19",
+        "bootstrap": "^4.0.0",
+        "cross-env": "^5.1",
+        "jquery": "^3.2",
+        "laravel-mix": "^4.0.7",
+        "lodash": "^4.17.13",
+        "popper.js": "^1.12",
+        "resolve-url-loader": "^2.3.1",
+        "sass": "^1.15.2",
+        "sass-loader": "^7.1.0",
+        "vue-template-compiler": "^2.6.10"
+    }
+}
+```
+
+```shell script
+npm config set registry=https://registry.npm.taobao.org
+yarn config set registry 'https://registry.npm.taobao.org'
+```
+
+```shell script
+yarn install --no-bin-links
+yarn add cross-env
+```
+
+```shell script
+npm run dev
+```
+
+```shell script
+npm run watch-poll
+```
