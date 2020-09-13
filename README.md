@@ -76,6 +76,214 @@ powerful-ravine-55489.herokuapp.com
 heroku logs
 ```
 
+## 在 Heroku 上使用 PostgreSQL
+
+要在 Heroku 上使用 PostgreSQL，我们需要先安装 PostgreSQL 扩展。
+
+```shell script
+heroku addons:add heroku-postgresql:hobby-dev
+```
+
+如：
+
+```shell script
+heroku addons:add heroku-postgresql:hobby-dev
+Created postgresql-crystalline-51657 as DATABASE_URL
+Use heroku addons:docs heroku-postgresql to view documentation
+```
+
+安装完成之后，Heroku 将为我们生成一个唯一的数据库 URL - DATABASE_URL，我们可以通过下面命令查看 Heroku 的所有配置信息：
+
+```shell script
+heroku config
+```
+
+如：
+
+```shell script
+$ heroku config
+ ›   Warning: heroku update available from 7.35.0 to 7.42.13.
+=== powerful-ravine-55489 Config Vars
+APP_KEY:      base64:ZOmgffT0TQi+0mVRQ583uan1yJtoX65SeeU7IjmlQzY=
+DATABASE_URL: postgres://urptruhbcidduj:02cc791f7e4a0b2ba5e37169e17d364747aa1c6df1187bebcdc3240bbeb37f69@ec2-54-235-192-146.compute-1.amazonaws.com:5432/ddriccf5u5gmrv
+vagrant@homestead:~/Code/weibo$
+```
+
+在本地开发中，我们使用了 MySQL 来作为数据库储存，但在 Heroku 环境上我们要改为使用 PostgreSQL 来作为数据库储存。因此在进行数据库设置时，我们需要对当前环境进行判断。如果环境为本地环境，则使用 MySQL 数据库，若为 Heroku 环境，则使用 PostgreSQL 数据库。我们可以通过为 Heroku 新增一个 IS_IN_HEROKU 配置项来判断应用是否运行在 Heroku 上。
+
+```shell script
+heroku config:set IS_IN_HEROKU=true
+```
+
+一般来说，应用的数据库都在 config/database.php 中进行配置，因此我们需要针对该配置文件，来为不同环境的数据库连接方式定义一个帮助方法，以便根据应用不同的运行环境来指定数据库配置信息，我们需要新建一个 helpers.php 文件并写入以下内容：
+
+app/helpers.php
+
+```shell script
+<?php
+
+function get_db_config()
+{
+    if (getenv('IS_IN_HEROKU')) {
+        $url = parse_url(getenv("DATABASE_URL"));
+
+        return $db_config = [
+            'connection' => 'pgsql',
+            'host' => $url["host"],
+            'database'  => substr($url["path"], 1),
+            'username'  => $url["user"],
+            'password'  => $url["pass"],
+        ];
+    } else {
+        return $db_config = [
+            'connection' => env('DB_CONNECTION', 'mysql'),
+            'host' => env('DB_HOST', 'localhost'),
+            'database'  => env('DB_DATABASE', 'forge'),
+            'username'  => env('DB_USERNAME', 'forge'),
+            'password'  => env('DB_PASSWORD', ''),
+        ];
+    }
+}
+```
+
+可以看到，我们定义了 get_db_config 方法来根据数据库的不同运行环境获取不同的配置信息。通过 Heroku 生成的 DATABASE_URL 包含了一切与数据库相关的配置信息，如主机、用户名、密码、数据库等，因此我们需要使用 parse_url 方法对其进行解析，来获取到指定的值。当运行环境为 Heroku 时，我们使用 DATABASE_URL 提供的数据库配置信息，如果为其它环境，则使用默认的数据库配置信息。
+
+在我们新增 helpers.php 文件之后，还需要在项目根目录下 composer.json 文件中的 autoload 选项里 files 字段加入该文件：
+
+composer.json
+
+```shell script
+{
+    ...
+
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        },
+        "classmap": [
+            "database/seeds",
+            "database/factories"
+        ],
+        "files": [
+            "app/helpers.php"
+        ]
+    }
+    ...
+}
+```
+
+修改保存后运行以下命令进行重新加载文件即可：
+
+```shell script
+composer dump-autoload
+```
+
+现在，让我们使用刚刚定义好的 get_db_config 方法对数据库进行配置。将数据库配置文件替换为以下内容：
+
+config/database.php
+
+```shell script
+<?php
+
+use Illuminate\Support\Str;
+
+$db_config = get_db_config();
+
+return [
+
+    'default' => $db_config['connection'],
+
+    'connections' => [
+
+        'sqlite' => [
+            'driver' => 'sqlite',
+            'url' => env('DATABASE_URL'),
+            'database' => env('DB_DATABASE', database_path('database.sqlite')),
+            'prefix' => '',
+            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+        ],
+
+        'mysql' => [
+            'driver' => 'mysql',
+            'url' => env('DATABASE_URL'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'forge'),
+            'username' => env('DB_USERNAME', 'forge'),
+            'password' => env('DB_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
+        'pgsql' => [
+            'driver'   => 'pgsql',
+            'host'     => $db_config['host'],
+            'port'     => env('DB_PORT', '5432'),
+            'database' => $db_config['database'],
+            'username' => $db_config['username'],
+            'password' => $db_config['password'],
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'schema' => 'public',
+            'sslmode' => 'prefer',
+        ],
+
+        'sqlsrv' => [
+            'driver' => 'sqlsrv',
+            'url' => env('DATABASE_URL'),
+            'host' => env('DB_HOST', 'localhost'),
+            'port' => env('DB_PORT', '1433'),
+            'database' => env('DB_DATABASE', 'forge'),
+            'username' => env('DB_USERNAME', 'forge'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+        ],
+
+    ],
+
+    'migrations' => 'migrations',
+
+    'redis' => [
+
+        'client' => env('REDIS_CLIENT', 'phpredis'),
+
+        'options' => [
+            'cluster' => env('REDIS_CLUSTER', 'redis'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+        ],
+
+        'default' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD', null),
+            'port' => env('REDIS_PORT', 6379),
+            'database' => env('REDIS_DB', 0),
+        ],
+
+        'cache' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD', null),
+            'port' => env('REDIS_PORT', 6379),
+            'database' => env('REDIS_CACHE_DB', 1),
+        ],
+
+    ],
+
+];
+```
+
 ## 统一代码风格
 
 `.editorconfig`
