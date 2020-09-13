@@ -155,3 +155,39 @@ npm run dev
 ```shell script
 npm run watch-poll
 ```
+
+## 添加语言包
+
+```shell script
+composer require "overtrue/laravel-lang:~3.0"
+```
+
+安装成功后，在 config/app.php 文件中将以下这一行：
+
+```shell script
+Illuminate\Translation\TranslationServiceProvider::class,
+```
+
+替换为：
+
+```shell script
+Overtrue\LaravelLang\TranslationServiceProvider::class,
+```
+
+最后，我们还需要将项目语言设置为中文。
+
+config/app.php
+
+```shell script
+<?php
+
+return [
+    .
+    .
+    .
+    'locale' => 'zh-CN',
+    .
+    .
+    .
+];    
+```
