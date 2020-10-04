@@ -362,3 +362,17 @@ return [
     .
 ];    
 ```
+
+## 在生产环境中发送邮件
+
+heroku config:set MAIL_DRIVER=smtp
+heroku config:set MAIL_HOST=smtp.qq.com
+heroku config:set MAIL_PORT=25
+heroku config:set MAIL_USERNAME=xxxxxxxxxxxxxx@qq.com
+heroku config:set MAIL_PASSWORD=xxxxxxxxx
+heroku config:set MAIL_ENCRYPTION=tls
+heroku config:set MAIL_FROM_ADDRESS=xxxxxxxxxxxxxx@qq.com
+heroku config:set MAIL_FROM_NAME=WeiboApp 
+
+# 线上域名
+ heroku config:set APP_URL=http://xxxxxxxx.herokuapp.com
